@@ -1,3 +1,3 @@
-import { Add } from './Add.js';
+import { PayoutZkapp } from './Payout.js';
 
-export { Add };
+export { PayoutZkapp };
