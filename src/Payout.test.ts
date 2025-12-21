@@ -1,6 +1,11 @@
 import { AccountUpdate, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 import { PayoutZkapp } from './Payout.js';
-import { requestPayout, sendPayout, getAccountBalance } from './helpers.js';
+import {
+  requestPayout,
+  sendPayout,
+  getAccountBalance,
+  logTxInfo,
+} from './helpers.js';
 
 const proofsEnabled = false;
 const MINA_NANO = 1e9;
@@ -111,18 +116,16 @@ describe('Payout ZkApp Tests', () => {
     expect(totalAmountAfter).toEqual(totalAmountBefore);
   });
 
-  it('Eve queues 4 payout requests (1 MINA each)', async () => {
+  it('Eve queues 7 payout requests (1 MINA each)', async () => {
     const requestTx = await Mina.transaction(
       { sender: evePubKey },
       async () => {
         //! Test-only: we allow repeat requests (no nullifier / replay protection here)
-        await zkapp.requestPayout(UInt64.from(1 * MINA_NANO));
-        await zkapp.requestPayout(UInt64.from(1 * MINA_NANO));
-        await zkapp.requestPayout(UInt64.from(1 * MINA_NANO));
-        await zkapp.requestPayout(UInt64.from(1 * MINA_NANO));
+        for (let i = 0; i < 7; i++)
+          await zkapp.requestPayout(UInt64.from(1 * MINA_NANO));
       }
     );
-
+    await logTxInfo(requestTx, 'request multiple actions');
     await requestTx.prove();
     (await requestTx.sign([eveKey]).send()).safeWait();
   });
@@ -154,7 +157,7 @@ describe('Payout ZkApp Tests', () => {
 
   it('Process payout requests up to 3 MINA (Eve+Danny+Bob paid; totals reflect 10 MINA)', async () => {
     // Pending actions:
-    // - Eve:   4 * 1.0 = 4 MINA
+    // - Eve:   7 * 1.0 = 7 MINA
     // - Danny: 2 * 1.5 = 3 MINA
     // - Bob:   1 * 3.0 = 3 MINA
     // Total payout amount = 10 MINA across 7 requests.
@@ -176,12 +179,12 @@ describe('Payout ZkApp Tests', () => {
     const requestCountAfter = zkapp.counter.get();
     const totalAmountAfter = zkapp.total.get();
 
-    expect(aliceBalanceBefore).toEqual(aliceBalanceAfter + 10n);
+    expect(aliceBalanceBefore).toEqual(aliceBalanceAfter + 13n);
     expect(bobBalanceAfter).toEqual(bobBalanceBefore + 3n);
     expect(dannyBalanceAfter).toEqual(dannyBalanceBefore + 3n);
-    expect(eveBalanceAfter).toEqual(eveBalanceBefore + 4n);
+    expect(eveBalanceAfter).toEqual(eveBalanceBefore + 7n);
 
-    expect(requestCountAfter).toEqual(requestCountBefore.add(7));
-    expect(totalAmountAfter).toEqual(totalAmountBefore.add(10 * MINA_NANO));
+    expect(requestCountAfter).toEqual(requestCountBefore.add(10));
+    expect(totalAmountAfter).toEqual(totalAmountBefore.add(13 * MINA_NANO));
   });
 });
