@@ -28,8 +28,8 @@ class RequestDetails extends Struct({
 }) {}
 
 class ReducedType extends Struct({
-  updatedCount: Field,
-  updatedTotal: Field,
+  counter: Field,
+  totalAmount: Field,
 }) {}
 
 export class PayoutZkapp extends SmartContract {
@@ -56,19 +56,19 @@ export class PayoutZkapp extends SmartContract {
   }
 
   @method async payout(amount: UInt64) {
-    let actionState = this.actionState.getAndRequireEquals();
-    let pendingActions = this.reducer.getActions({
+    const actionState = this.actionState.getAndRequireEquals();
+    const pendingActions = this.reducer.getActions({
       fromActionState: actionState,
     });
 
-    let sender = this.sender.getUnconstrained();
+    const sender = this.sender.getUnconstrained();
     const count = this.counter.getAndRequireEquals();
     const total = this.total.getAndRequireEquals();
 
-    let { updatedCount, updatedTotal } = this.reducer.reduce(
+    let { counter, totalAmount } = this.reducer.reduce(
       pendingActions,
       ReducedType,
-      (_state: ReducedType, action: RequestDetails) => {
+      (state: ReducedType, action: RequestDetails) => {
         const inRange = action.amount.lessThanOrEqual(amount);
         const condition = action.isPending.and(inRange);
 
@@ -76,10 +76,10 @@ export class PayoutZkapp extends SmartContract {
         payer.requireSignature();
         payer.send({ to: action.recipient, amount: action.amount });
 
-        const updatedCount = Provable.if(condition, count.add(1), count);
+        let updatedCount = state.counter.add(condition.toField());
         const updatedTotal = Provable.if(
           condition,
-          total.add(action.amount.value),
+          state.totalAmount.add(action.amount.value),
           total
         );
 
@@ -91,16 +91,19 @@ export class PayoutZkapp extends SmartContract {
           totalAmount: updatedTotal,
         });
 
-        // for (let i = 0; i < 21; i++) // uncomment if you want to emit events more than the 1024 limit
+        // for (let i = 0; i < 21; i++) // uncomment if you want to emit more events to exceed the 1024 limit
         this.emitEventIf(action.isPending, 'receipt', eventData);
 
-        return new ReducedType({ updatedCount, updatedTotal });
+        return new ReducedType({
+          counter: updatedCount,
+          totalAmount: updatedTotal,
+        });
       },
-      new ReducedType({ updatedCount: count, updatedTotal: total })
+      new ReducedType({ counter: count, totalAmount: total })
     );
 
     this.actionState.set(pendingActions.hash);
-    this.counter.set(updatedCount);
-    this.total.set(updatedTotal);
+    this.counter.set(counter);
+    this.total.set(totalAmount);
   }
 }
