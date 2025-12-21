@@ -1,3 +1,9 @@
+// Comment `this.actionState.set(this.reducer.getActions().hash);` in `Payout.ts` to deploy and progress through the tests
+//? It's weird that there's inconsistency regarding the first actionState between local blockchain and Mesa Testnet
+
+//! If fee is not set to 2e8, we get insufficient_fee error when interacting on Mesa Testnet
+//! It seems the default fee is not enough -> we might need to adjust the default rather than setting higher fee every time
+
 import {
   UInt64,
   Mina,
@@ -16,10 +22,12 @@ dotenv.config();
 const MINA_NANO = 1e9;
 const MINA_NODE_ENDPOINT =
   'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql';
-const MINA_ARCHIVE_ENDPOINT = 'placeholder'; // 'https://plain-1-graphql.mesa-archive-node-api.gcp.o1test.net/graphql'
+const MINA_ARCHIVE_ENDPOINT =
+  'https://plain-1-graphql.mesa-archive-node-api.gcp.o1test.net/graphql'; // 'placeholder'
 
 const proofsEnabled = true;
 const logsEnabled = true;
+const fee = 2e8;
 
 console.time('compile...');
 if (proofsEnabled) await PayoutZkapp.compile();
@@ -58,18 +66,12 @@ console.log('Deploying zkApp...');
 await deployZkapp(zkapp, payerPrivateKey, zkappPrivateKey);
 
 const requestTx = await Mina.transaction(
-  { sender: requesterPublicKey },
+  { sender: requesterPublicKey, fee },
   async () => {
     //! Test only; otherwise, for security reason we would have added a nullifer
     //! scheme for accounts that already had a filled payout request before
-    await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
-    await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
-    await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
-    await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
-    await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
-
-    await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
-    await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
+    for (let i = 0; i < 7; i++)
+      await zkapp.requestPayout(UInt64.from(0.5 * MINA_NANO));
   }
 );
 
@@ -82,7 +84,7 @@ console.log(
 );
 
 const payoutTx = await Mina.transaction(
-  { sender: payerPublicKey },
+  { sender: payerPublicKey, fee },
   async () => {
     await zkapp.payout(UInt64.from(2e9));
   }
@@ -158,10 +160,13 @@ async function deployZkapp(
   zkappPrivateKey: PrivateKey
 ) {
   const deployerAccount = deployerKey.toPublicKey();
-  const tx = await Mina.transaction({ sender: deployerAccount }, async () => {
-    AccountUpdate.fundNewAccount(deployerAccount);
-    await zkapp.deploy();
-  });
+  const tx = await Mina.transaction(
+    { sender: deployerAccount, fee },
+    async () => {
+      AccountUpdate.fundNewAccount(deployerAccount);
+      await zkapp.deploy();
+    }
+  );
 
   await waitTransactionAndFetchAccount(
     tx,
