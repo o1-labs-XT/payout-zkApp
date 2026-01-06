@@ -125,7 +125,7 @@ describe('Payout ZkApp Tests', () => {
           await zkapp.requestPayout(UInt64.from(1 * MINA_NANO));
       }
     );
-    await logTxInfo(requestTx, 'request multiple actions');
+    logTxInfo(requestTx, 'request multiple actions');
     await requestTx.prove();
     (await requestTx.sign([eveKey]).send()).safeWait();
   });

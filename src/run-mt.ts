@@ -22,8 +22,7 @@ dotenv.config();
 const MINA_NANO = 1e9;
 const MINA_NODE_ENDPOINT =
   'https://plain-1-graphql.mina-mesa-network.gcp.o1test.net/graphql';
-const MINA_ARCHIVE_ENDPOINT =
-  'https://plain-1-graphql.mesa-archive-node-api.gcp.o1test.net/graphql'; // 'placeholder'
+const MINA_ARCHIVE_ENDPOINT = 'http://mesa-archive-node-api.gcp.o1test.net';
 
 const proofsEnabled = true;
 const logsEnabled = true;
@@ -100,6 +99,7 @@ console.log(
 
 /// HELPER FUNCTIONS
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function log(...args: any[]) {
   if (logsEnabled) {
     console.log(...args);

@@ -45,7 +45,7 @@ export class PayoutZkapp extends SmartContract {
 
   init() {
     super.init();
-    this.actionState.set(this.reducer.getActions().hash);
+    this.actionState.set(this.reducer.getActions().hash); // 25079927036070901246064867767436987657692091363973573142121686150614948079097
   }
 
   @method async requestPayout(amount: UInt64) {

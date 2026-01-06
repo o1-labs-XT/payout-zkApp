@@ -80,16 +80,7 @@ async function main() {
       { sender: evePubKey },
       async () => {
         //! Test-only: we allow repeat requests (no nullifier / replay protection here)
-        await zkapp.requestPayout(UInt64.from(1e9));
-        await zkapp.requestPayout(UInt64.from(1e9));
-        await zkapp.requestPayout(UInt64.from(1e9));
-        await zkapp.requestPayout(UInt64.from(1e9));
-        await zkapp.requestPayout(UInt64.from(1e9));
-
-        await zkapp.requestPayout(UInt64.from(1e9));
-        await zkapp.requestPayout(UInt64.from(1e9));
-        // await zkapp.requestPayout(UInt64.from(1e9));
-        // await zkapp.requestPayout(UInt64.from(1e9));
+        for (let i = 0; i < 7; i++) await zkapp.requestPayout(UInt64.from(1e9));
       }
     );
 
@@ -105,12 +96,12 @@ async function main() {
   );
 
   const payoutTx = await Mina.transaction(
-    { sender: alicePubKey, fee: UInt64.from(2e8) },
+    { sender: alicePubKey, fee: UInt64.from(1e8) },
     async () => {
       await zkapp.payout(UInt64.from(2e9));
     }
   );
-
+  console.log(payoutTx.toPretty());
   await payoutTx.prove();
   await payoutTx.sign([aliceKey]).send();
 
