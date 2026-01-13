@@ -190,6 +190,52 @@ To use the pre-Mesa `o1js` package, simply override the `o1js` peer dependency b
 - `npm run build`
 - `node build/src/run-mt.js`
 
+### Stress testing a deployed payout zkApp
+
+#### Running `tester.ts` on Mesa Testnet
+
+This script interacts with an **already-deployed** payout zkApp on Mesa Testnet for a bounded number of rounds and prints:
+
+- zkApp metadata (`counter`, `total`, `actionState`)
+- number of pending actions (via archive endpoint)
+- Finality timing per transaction (request + payout)
+- per-round total time and an end-of-run summary (min/max/avg + total)
+
+#### Deploy (or reuse) a payout zkApp and get its address
+
+Run the Mesa deploy / interaction script first to deploy a fresh zkApp and print its address:
+
+- `npm run build; node build/src/run-mt.js`
+
+Wait for the script to finish and copy the deployed zkApp address it prints.
+
+You can also use **any existing** deployed payout zkApp address instead.
+
+#### Add the zkApp address to `.env`
+
+Set the following variables:
+
+- `PAYOUT_SENDER_KEY` = payer private key (base58)
+- `PAYOUT_REQUEST_KEY` = requester private key (base58)
+- `PAYOUT_ZKAPP_ADDRESS="payout_zkApp_address_to_interact_with_via_the_tester_script"`
+
+#### Run the tester
+
+Build and run:
+
+- `npm run build; node build/src/tester.js`
+
+The script will:
+
+- enqueue multiple requests per round,
+- trigger payout per round,
+- print metadata + pending actions before/after each round, and
+- produce a final summary that helps assess network responsiveness and zkApp integrity when everything passes.
+
+#### Warning
+
+Avoid killing the script mid-run while it is dispatching many actions. If too many payout requests are enqueued without being reduced/processed, it can make later payouts fail (and may effectively “dead-lock” progress until pending actions are handled). See the repo’s [Security Considerations](#security-considerations) for more context.
+
 ## License
 
 [Apache-2.0](LICENSE)
