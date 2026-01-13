@@ -1,9 +1,3 @@
-// Comment `this.actionState.set(this.reducer.getActions().hash);` in `Payout.ts` to deploy and progress through the tests
-//? It's weird that there's inconsistency regarding the first actionState between local blockchain and Mesa Testnet
-
-//! If fee is not set to 2e8, we get insufficient_fee error when interacting on Mesa Testnet
-//! It seems the default fee is not enough -> we might need to adjust the default rather than setting higher fee every time
-
 import {
   UInt64,
   Mina,
@@ -26,7 +20,7 @@ const MINA_ARCHIVE_ENDPOINT = 'http://mesa-archive-node-api.gcp.o1test.net';
 
 const proofsEnabled = true;
 const logsEnabled = true;
-const fee = 2e8;
+const fee = 1e8;
 
 console.time('compile...');
 if (proofsEnabled) await PayoutZkapp.compile();
@@ -63,6 +57,8 @@ let zkapp = new PayoutZkapp(zkappAddress);
 
 console.log('Deploying zkApp...');
 await deployZkapp(zkapp, payerPrivateKey, zkappPrivateKey);
+
+console.log('Payout zkApp address: ', zkappAddress.toBase58());
 
 const requestTx = await Mina.transaction(
   { sender: requesterPublicKey, fee },
